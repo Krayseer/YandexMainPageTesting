@@ -34,6 +34,7 @@ namespace YandexMainPageTesting
             driver.SwitchTo().Window(driver.WindowHandles[1]);
         }
 
+        // Перевод времени с сервера на реальное время
         private static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
         {
             var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
@@ -49,6 +50,7 @@ namespace YandexMainPageTesting
             driver.Navigate().GoToUrl("https://yandex.ru");
         }
         
+        // Проверяем, можно ли ввести запрос и перейти на соответствующую страницу
         [Test]
         public void CanUseSearchBar()
         {
@@ -60,12 +62,13 @@ namespace YandexMainPageTesting
             searchBar.SendKeys(testText);
             findQueryButton.Click();
             Thread.Sleep(1000);
-            var textInSearchBarAfterfindQueryButton = driver.FindElement(By.XPath("//input")).GetAttribute("value");
+            var textInSearchBarAfterFindQueryButton = driver.FindElement(By.XPath("//input")).GetAttribute("value");
 
-            Assert.AreEqual(testText, textInSearchBarAfterfindQueryButton);
+            Assert.AreEqual(testText, textInSearchBarAfterFindQueryButton);
         }
 
-        [Test] // добавить другие случаи, включая пробел и пустой ввод
+        // Проверяем работает ли виртуальная клавиатура, вводим запрос на ней и переходим на следующую страницу
+        [Test]
         public void CheckingFunctionalityOfVirtualKeyboard()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -81,14 +84,14 @@ namespace YandexMainPageTesting
                 testText += x;
             });
             commands.ForEach(x => wait.Until(EC.ElementToBeClickable(By.XPath(x))).Click());
-            var findQueryButton = wait.Until(EC.ElementToBeClickable(By.XPath("//button[contains(@class, 'i-bem button_js_inited')]")));
-            findQueryButton.Click();
+            wait.Until(EC.ElementToBeClickable(By.XPath("//button[contains(@class, 'i-bem button_js_inited')]"))).Click();
             Thread.Sleep(1000);
             var textInSearchBarAfterfindQueryButton = driver.FindElement(By.XPath("//input")).GetAttribute("value");
 
             Assert.AreEqual(testText, textInSearchBarAfterfindQueryButton);
         }
 
+        // Проверяем, корректно ли отображается время и дата на главной странице
         [Test]
         public void CheckIfDateAndTimeIsCorrect()
         {
@@ -112,6 +115,7 @@ namespace YandexMainPageTesting
             Assert.AreEqual(expectedDate, actualDate);
         }
 
+        // Проверяем, что можно перейти на страницу Яндекс.Маркет
         [Test]
         public void CheckTransitionToMarketPageOnButtonClick()
         {
@@ -124,6 +128,7 @@ namespace YandexMainPageTesting
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
 
+        // Проверяем, что можно перейти на страницу Яндекс.Видео
         [Test]
         public void CheckTransitionToVideoPageOnButtonClick()
         {
@@ -136,6 +141,7 @@ namespace YandexMainPageTesting
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
 
+        // Проверяем, что можно перейти на страницу Яндекс.Картинки
         [Test]
         public void CheckTransitionToImagesPageOnButtonClick()
         {
@@ -147,7 +153,8 @@ namespace YandexMainPageTesting
 
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
-        
+
+        // Проверяем, что можно перейти на страницу Яндекс.Новости
         [Test]
         public void CheckTransitionToNewsPageOnButtonClick()
         {
@@ -159,7 +166,8 @@ namespace YandexMainPageTesting
 
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
-        
+
+        // Проверяем, что можно перейти на страницу Яндекс.Карты
         [Test]
         public void CheckTransitionToMapsPageOnButtonClick()
         {
@@ -171,60 +179,55 @@ namespace YandexMainPageTesting
 
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
-        
+
+        // Проверяем, что можем авторизироваться на яндекс почте. Сначала вводим несуществующий логин, убеждаемся что не можем войти, далее 
+        // вводим существующий логин и переходим на страницу где уже можно вводить пароль
         [Test]
-        public void CanLogIntoNonExistentYandexMailAccount()
+        public void CheckAuthorizationYandexMail()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
             ClosePopUpWindowWhenItExists(wait);
 
-            var testLogin = "thisLoginDoesNotExist";
+            var incorrectLogin = "thisLoginDoesNotExist";
+            var correctLogin = "qwerty";
+
             wait.Until(EC.ElementToBeClickable(By.XPath("//div[@class='desk-notif-card__login-new-item-title']"))).Click();
-            var authorization = driver.FindElement(By.XPath("//input[@name='login']"));
-            authorization.SendKeys(testLogin);
-            Thread.Sleep(1000);
-            driver.FindElement(By.XPath("//button[@id='passp:sign-in']")).Click();
-            Thread.Sleep(1000);
-            bool isFindAttributeError = false;
-            foreach (var element in driver.FindElements(By.XPath("//div")))
-                if (element.GetAttribute("role") == "alert")
-                {
-                    isFindAttributeError = true;
-                    break;
-                }
-            Assert.IsTrue(isFindAttributeError);
+
+            bool CheckingCorrectnessOfElementSearch(string login ,string htmlBlock, string attributeName, string attributeValue)
+            {
+                driver.FindElement(By.XPath("//input[@name='login']")).SendKeys(login);
+                Thread.Sleep(500);
+                driver.FindElement(By.XPath("//button[@id='passp:sign-in']")).Click();
+                Thread.Sleep(500);
+                foreach (var element in driver.FindElements(By.XPath(htmlBlock)))
+                    if (element.GetAttribute(attributeName) == attributeValue)
+                        return true;
+                return false;
+            }
+
+            bool wrongLoginWorkedCorrectly = CheckingCorrectnessOfElementSearch(incorrectLogin, "//div", "role", "alert");
+            driver.Navigate().Refresh();
+            bool correctLoginWorkedCorrectly = CheckingCorrectnessOfElementSearch(correctLogin, "//label", "data-t", "field:label-passwd");
+            Assert.IsTrue(wrongLoginWorkedCorrectly && correctLoginWorkedCorrectly);
         }
         
-        [Test] // доделать
+        // Проверяем, можно ли закрыть рекламу. Если у рекламы не имеется значка для закрытия, обновляем страницу
+        [Test]
         public void CheckAdvertisementsClosingSuccess()
         {
-            var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
+            var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 3));
             ClosePopUpWindowWhenItExists(wait);
-
-            for(var i = 0; i < 10; i++)
+            for(int i = 0; i < 20; i++)
             {
-                try
-                {
-                    wait.Until(EC.ElementToBeClickable(By.XPath("//button[@class='direct-close-block__close-button']"))).Click();
-                    wait.Until(EC.ElementToBeClickable(By.XPath("//span[@data-id='21-4']"))).Click();
-                    wait.Until(EC.ElementToBeClickable(By.XPath("//span[@data-id='3-2']"))).Click();
-                    driver.Navigate().Refresh();
-                }
-                catch
-                {
-                    try
-                    {
-                        wait.Until(EC.ElementToBeClickable(By.XPath("//span[@data-id='3-2']"))).Click();
-                    }
-                    catch
-                    {
-                        driver.Navigate().Refresh();
-                    }
-                }
+                try { wait.Until(EC.ElementToBeClickable(By.XPath("//div[@class='direct-close-block__close-icon']"))).Click(); }
+                catch { }
+                finally { driver.Navigate().Refresh(); }
             }
         }
 
-        [Test] // убрать reverse
+        // Провряем актуальность данных о заболевших коронавирусом. Сначала берём значения с главной страницы Яндекса далее сверяем их
+        // с данными с официального сайта "стопкоронавирус.рф"
+        [Test]
         public void CheckCorrectnessOfValuesNumberOfSick()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -249,7 +252,9 @@ namespace YandexMainPageTesting
 
             Assert.AreEqual(expectedValuesList, actualValuesList);
         }
-        
+
+        // Предварительно меняем значение времени на некорректное значение. Проверяем, можно ли определить проблему неисправности значения времени на главной странице.
+        // Далее из базы берём значение времени и интегрируем на главную страницу.
         [Test]
         public void FixTimeDisplayErrorOnWebsite()
         {
@@ -261,14 +266,17 @@ namespace YandexMainPageTesting
             using Stream dataStream = response.GetResponseStream();
             var reader = new StreamReader(dataStream);
             var responseFromServer = reader.ReadToEnd();
+            var timeFromServer = double.Parse(responseFromServer[(responseFromServer.IndexOf(':') + 1)..(responseFromServer.IndexOf(',') - 3)]);
 
             var js = (IJavaScriptExecutor)driver;
             js.ExecuteScript("document.querySelector('.datetime__time').textContent = 'Ошибка системы'");
             Thread.Sleep(2000);
 
-            var expectedTime = UnixTimeStampToDateTime(double.Parse(responseFromServer[8..18])).ToShortTimeString();
+            var expectedTime = UnixTimeStampToDateTime(timeFromServer).ToShortTimeString();
             var correctTimeValueOnSite = string.Format("document.querySelector('.datetime__time').textContent = '{0}'", expectedTime);
             js.ExecuteScript(correctTimeValueOnSite);
+
+            Assert.AreEqual(expectedTime, driver.FindElement(By.XPath("//span[@class='datetime__time']")).Text);
         }
 
         [TearDown]
