@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Threading;
 using NUnit.Framework;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using EC = SeleniumExtras.WaitHelpers.ExpectedConditions;
 
@@ -34,10 +36,12 @@ namespace YandexMainPageTesting
         [SetUp]
         public void Setup()
         {
-            driver = new OpenQA.Selenium.Edge.EdgeDriver();
+            var options = new EdgeOptions();
+            options.AddArgument("headless");
+            driver = new EdgeDriver(options);
             driver.Navigate().GoToUrl("https://yandex.ru");
         }
-
+        
         [Test]
         public void CanUseSearchBar()
         {
@@ -54,7 +58,7 @@ namespace YandexMainPageTesting
             Assert.AreEqual(testText, textInSearchBarAfterfindQueryButton);
         }
 
-        [Test]
+        [Test] // добавить другие случаи, включая пробел и пустой ввод
         public void CheckingFunctionalityOfVirtualKeyboard()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -161,7 +165,7 @@ namespace YandexMainPageTesting
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
 
-        [Test]
+        [Test] // исправить логику поиска строки expected
         public void CanLogIntoNonExistentYandexMailAccount()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -181,7 +185,7 @@ namespace YandexMainPageTesting
             Assert.AreEqual(expectedMessage, isFindException);
         }
 
-        [Test]
+        [Test] // доделать
         public void CheckAdvertisementsClosingSuccess()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -235,12 +239,15 @@ namespace YandexMainPageTesting
 
             Assert.AreEqual(expectedValuesList, actualValuesList);
         }
-
+        
         [Test]
         public void DoTest()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
             ClosePopUpWindowWhenItExists(wait);
+            WebRequest request = WebRequest.Create("http://somesite.com/myfile.txt");
+            WebResponse response = request.GetResponse();
+
         }
 
         [TearDown]
