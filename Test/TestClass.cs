@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Threading;
 using NUnit.Framework;
@@ -33,12 +34,19 @@ namespace YandexMainPageTesting
             driver.SwitchTo().Window(driver.WindowHandles[1]);
         }
 
+        private static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
+        {
+            var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
+            return dateTime;
+        }
+
         [SetUp]
         public void Setup()
-        {
+        {   
             var options = new EdgeOptions();
             options.AddArgument("headless");
-            driver = new EdgeDriver(options);
+            driver = new EdgeDriver();
             driver.Navigate().GoToUrl("https://yandex.ru");
         }
         
@@ -164,27 +172,30 @@ namespace YandexMainPageTesting
 
             Assert.IsTrue(CheckIfUserWentToPageWhenClickOnButton(driver, expectedUrlAfterMovingToNewPage));
         }
-
-        [Test] // исправить логику поиска строки expected
+        
+        [Test]
         public void CanLogIntoNonExistentYandexMailAccount()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
             ClosePopUpWindowWhenItExists(wait);
 
             var testLogin = "thisLoginDoesNotExist";
-            var expectedMessage = "Такого аккаунта нет";
-
             wait.Until(EC.ElementToBeClickable(By.XPath("//div[@class='desk-notif-card__login-new-item-title']"))).Click();
             var authorization = driver.FindElement(By.XPath("//input[@name='login']"));
             authorization.SendKeys(testLogin);
             Thread.Sleep(1000);
             driver.FindElement(By.XPath("//button[@id='passp:sign-in']")).Click();
             Thread.Sleep(1000);
-            var isFindException = driver.FindElement(By.XPath("//div[@role='alert']")).Text;
-
-            Assert.AreEqual(expectedMessage, isFindException);
+            bool isFindAttributeError = false;
+            foreach (var element in driver.FindElements(By.XPath("//div")))
+                if (element.GetAttribute("role") == "alert")
+                {
+                    isFindAttributeError = true;
+                    break;
+                }
+            Assert.IsTrue(isFindAttributeError);
         }
-
+        
         [Test] // доделать
         public void CheckAdvertisementsClosingSuccess()
         {
@@ -227,7 +238,7 @@ namespace YandexMainPageTesting
             {
                 categorySelectionPoint[i].Click();
                 actualValuesList.Add(actualValues[i].Text.Replace("+", ""));
-                Thread.Sleep(1000);
+                Thread.Sleep(500);
             }
 
             driver.Navigate().GoToUrl("https://xn--80aesfpebagmfblc0a.xn--p1ai/?");
@@ -241,13 +252,24 @@ namespace YandexMainPageTesting
         }
         
         [Test]
-        public void DoTest()
+        public void FixTimeDisplayErrorOnWebsite()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
             ClosePopUpWindowWhenItExists(wait);
-            WebRequest request = WebRequest.Create("http://somesite.com/myfile.txt");
-            WebResponse response = request.GetResponse();
+            var queryUrl = "https://yandex.ru/time/sync.json?geo=213%2C202%2C10393%2C10636%2C10145&lang=ru&ncrnd=0.7915699997502998";
+            var request = WebRequest.Create(queryUrl);
+            var response = request.GetResponse();
+            using Stream dataStream = response.GetResponseStream();
+            var reader = new StreamReader(dataStream);
+            string responseFromServer = reader.ReadToEnd();
 
+            IJavaScriptExecutor js = (IJavaScriptExecutor)driver;
+            js.ExecuteScript("document.querySelector('.datetime__time').textContent = 'Ошибка системы'");
+            Thread.Sleep(2000);
+
+            var expectedTime = UnixTimeStampToDateTime(double.Parse(responseFromServer[8..18])).ToShortTimeString();
+            var correctTimeValueOnSite = string.Format("document.querySelector('.datetime__time').textContent = '{0}'", expectedTime);
+            js.ExecuteScript(correctTimeValueOnSite);
         }
 
         [TearDown]
