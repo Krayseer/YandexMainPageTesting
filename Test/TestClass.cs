@@ -37,8 +37,7 @@ namespace YandexMainPageTesting
         private static DateTime UnixTimeStampToDateTime(double unixTimeStamp)
         {
             var dateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
-            dateTime = dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
-            return dateTime;
+            return dateTime.AddSeconds(unixTimeStamp).ToLocalTime();
         }
 
         [SetUp]
@@ -46,7 +45,7 @@ namespace YandexMainPageTesting
         {   
             var options = new EdgeOptions();
             options.AddArgument("headless");
-            driver = new EdgeDriver();
+            driver = new EdgeDriver(options);
             driver.Navigate().GoToUrl("https://yandex.ru");
         }
         
@@ -225,7 +224,7 @@ namespace YandexMainPageTesting
             }
         }
 
-        [Test]
+        [Test] // убрать reverse
         public void CheckCorrectnessOfValuesNumberOfSick()
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 10));
@@ -261,9 +260,9 @@ namespace YandexMainPageTesting
             var response = request.GetResponse();
             using Stream dataStream = response.GetResponseStream();
             var reader = new StreamReader(dataStream);
-            string responseFromServer = reader.ReadToEnd();
+            var responseFromServer = reader.ReadToEnd();
 
-            IJavaScriptExecutor js = (IJavaScriptExecutor)driver;
+            var js = (IJavaScriptExecutor)driver;
             js.ExecuteScript("document.querySelector('.datetime__time').textContent = 'Ошибка системы'");
             Thread.Sleep(2000);
 
