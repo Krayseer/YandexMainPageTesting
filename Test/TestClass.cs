@@ -86,9 +86,9 @@ namespace YandexMainPageTesting
             commands.ForEach(x => wait.Until(EC.ElementToBeClickable(By.XPath(x))).Click());
             wait.Until(EC.ElementToBeClickable(By.XPath("//button[contains(@class, 'i-bem button_js_inited')]"))).Click();
             Thread.Sleep(1000);
-            var textInSearchBarAfterfindQueryButton = driver.FindElement(By.XPath("//input")).GetAttribute("value");
+            var textInSearchBarAfterFindQueryButton = driver.FindElement(By.XPath("//input")).GetAttribute("value");
 
-            Assert.AreEqual(testText, textInSearchBarAfterfindQueryButton);
+            Assert.AreEqual(testText, textInSearchBarAfterFindQueryButton);
         }
 
         // Проверяем, корректно ли отображается время и дата на главной странице
@@ -208,6 +208,7 @@ namespace YandexMainPageTesting
             bool wrongLoginWorkedCorrectly = CheckingCorrectnessOfElementSearch(incorrectLogin, "//div", "role", "alert");
             driver.Navigate().Refresh();
             bool correctLoginWorkedCorrectly = CheckingCorrectnessOfElementSearch(correctLogin, "//label", "data-t", "field:label-passwd");
+
             Assert.IsTrue(wrongLoginWorkedCorrectly && correctLoginWorkedCorrectly);
         }
         
@@ -217,7 +218,7 @@ namespace YandexMainPageTesting
         {
             var wait = new WebDriverWait(driver, new TimeSpan(0, 0, 3));
             ClosePopUpWindowWhenItExists(wait);
-            for(int i = 0; i < 20; i++)
+            for(int i = 0; i < 20; i++) // для чистоты эксперимента проведём 20 тестов 
             {
                 try { wait.Until(EC.ElementToBeClickable(By.XPath("//div[@class='direct-close-block__close-icon']"))).Click(); }
                 catch { }
@@ -253,8 +254,8 @@ namespace YandexMainPageTesting
             Assert.AreEqual(expectedValuesList, actualValuesList);
         }
 
-        // Предварительно меняем значение времени на некорректное значение. Проверяем, можно ли определить проблему неисправности значения времени на главной странице.
-        // Далее из базы берём значение времени и интегрируем на главную страницу.
+        // Предварительно меняем значение времени на сайте на некорректное значение. Далее мы пытаемся это исправить и вернуть истинное значение времени.
+        // Для нахождения данного значения мы зайдем в базу и возьмём от туда атрибут "time" и переводим его из UnixTime в реальное время
         [Test]
         public void FixTimeDisplayErrorOnWebsite()
         {
@@ -264,8 +265,7 @@ namespace YandexMainPageTesting
             var request = WebRequest.Create(queryUrl);
             var response = request.GetResponse();
             using Stream dataStream = response.GetResponseStream();
-            var reader = new StreamReader(dataStream);
-            var responseFromServer = reader.ReadToEnd();
+            var responseFromServer = new StreamReader(dataStream).ReadToEnd();
             var timeFromServer = double.Parse(responseFromServer[(responseFromServer.IndexOf(':') + 1)..(responseFromServer.IndexOf(',') - 3)]);
 
             var js = (IJavaScriptExecutor)driver;
